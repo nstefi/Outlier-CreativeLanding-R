@@ -74,7 +74,7 @@ export default function Header() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <a href="#" className="text-2xl font-bold flex items-center">
-              <span className="text-primary mr-1">Anim</span>
+              <span className="text-primary">Anim</span>
               <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">ate</span>
             </a>
 
