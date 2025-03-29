@@ -25,16 +25,17 @@ const Particle = ({
   color?: string;
   isVisible?: boolean;
 }) => {
+  // Create a brighter center for the glow effect (like in reference images)
+  const glowColor = color.replace(/[^,]+(?=\))/, '1.0'); // Make fully opaque
+  const glowSize = size * 0.6; // Smaller bright center
+  
   return (
     <motion.div
-      className="absolute rounded-full"
+      className="absolute"
       initial={{ 
         x: isForming ? x : targetX, 
         y: isForming ? y : targetY,
         opacity: isForming ? 0 : 0.9,
-        width: size,
-        height: size,
-        backgroundColor: color
       }}
       animate={{ 
         x: isForming ? targetX : x, 
@@ -48,10 +49,30 @@ const Particle = ({
         damping: 20,
         stiffness: 90
       }}
-      style={{ 
-        boxShadow: `0 0 ${size * 1.5}px ${color}`,
-      }}
-    />
+    >
+      {/* Outer glow */}
+      <div 
+        className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2"
+        style={{ 
+          width: size,
+          height: size,
+          backgroundColor: 'transparent',
+          boxShadow: `0 0 ${size * 2}px ${color}`,
+          filter: 'blur(0.5px)',
+        }}
+      />
+      
+      {/* Bright center dot */}
+      <div 
+        className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2"
+        style={{ 
+          width: glowSize,
+          height: glowSize,
+          backgroundColor: glowColor,
+          boxShadow: `0 0 ${size}px ${glowColor}`,
+        }}
+      />
+    </motion.div>
   );
 };
 
@@ -71,14 +92,17 @@ export default function AnimationTest() {
     centerY: number, 
     width: number, 
     height: number, 
-    curve: 'sine' | 'circle' | 'spiral' | 'lissajous' | 'heart' | 'helix' | 'torus' | 'mobius' | 'wave3d' | 'cylinder',
+    curve: 'sine' | 'circle' | 'spiral' | 'lissajous' | 'heart' | 'helix' | 'torus' | 'mobius' | 'wave3d' | 'cylinder' | 'flux' | 'vortex' | 'spiral3d',
     offset: number = 0, // For 3D effect with parallel curves
     time: number = 0    // For rotation animation
   ) => {
-    // Time-based rotation factors
+    // Time-based rotation factors for regular rotation
     const rotationX = Math.cos(time) * Math.PI;
     const rotationY = Math.sin(time) * Math.PI / 2;
     const rotationZ = time;
+    
+    // Continuous time-based rotation (for more flowing animation)
+    const flowTime = Date.now() / 1000;
     
     // Helper function to apply 3D rotation to a point
     const rotate3D = (pointX: number, pointY: number, pointZ: number) => {
@@ -197,7 +221,87 @@ export default function AnimationTest() {
         const cylinderZ = cylinderHeight;
         
         return rotate3D(cylinderX, cylinderY, cylinderZ);
+      
+      case 'flux':
+        // Flowing tube-like structure inspired by the reference images
+        const fluxR = Math.min(width, height) * 0.3;
+        const tubeLayers = 15; // Number of concentric layers
         
+        // Use offset to create different layers
+        const layerIndex = offset % tubeLayers;
+        const layerRadius = fluxR * (0.2 + 0.8 * (layerIndex / tubeLayers));
+        
+        // Create twisting flow with sine waves
+        const fluxPhase = flowTime * 0.5; // Continuous rotation
+        const twirlFactor = 3 + Math.sin(flowTime * 0.2) * 2; // Varying twist
+        const waveAmplitude = 0.15 + 0.1 * Math.sin(flowTime * 0.3);
+        
+        // Base rotation around circle
+        const baseAngle = t * Math.PI * 2 * twirlFactor + fluxPhase;
+        
+        // Add wave distortion for each layer
+        const waveOffset = Math.sin(baseAngle * 2 + layerIndex) * waveAmplitude;
+        const radiusWithWave = layerRadius * (1 + waveOffset);
+        
+        // Flow direction varies with time
+        const flowZ = Math.cos(t * Math.PI * 4 + fluxPhase + layerIndex * 0.2) * height * 0.4;
+        
+        // Calculate final position
+        const fluxX = radiusWithWave * Math.cos(baseAngle);
+        const fluxY = radiusWithWave * Math.sin(baseAngle);
+        const fluxZ = flowZ;
+        
+        return rotate3D(fluxX, fluxY, fluxZ);
+        
+      case 'vortex':
+        // Vortex/tunnel effect (like the second image)
+        const vortexWidth = Math.min(width, height) * 0.35;
+        const vortexDepth = height * 0.6;
+        
+        // Use t for position along the vortex
+        // Use offset for angular position around the vortex
+        const vortexAngle = (offset / 20) * Math.PI * 2;
+        
+        // Create spiral motion
+        const spiralFactor = 1.5 + Math.sin(flowTime * 0.2) * 0.5; // Varying spiral tightness
+        const spiralTwist = t * spiralFactor * Math.PI * 2;
+        
+        // Radius decreases as we go deeper into the vortex for tunnel effect
+        const vortexRadius = vortexWidth * (0.2 + 0.8 * (1 - t));
+        
+        // Calculate position with some wobble
+        const wobble = Math.sin(t * Math.PI * 8 + flowTime) * 0.1;
+        const vortexX = vortexRadius * (1 + wobble) * Math.cos(vortexAngle + spiralTwist);
+        const vortexY = vortexRadius * (1 + wobble) * Math.sin(vortexAngle + spiralTwist);
+        const vortexZ = -vortexDepth * t; // Negative to go into the screen
+        
+        return rotate3D(vortexX, vortexY, vortexZ);
+      
+      case 'spiral3d':
+        // 3D spiral with wave effects (like the third image)
+        const spiralBaseRadius = Math.min(width, height) * 0.3;
+        const spiralDepth = height * 0.8;
+        
+        // Spiral parameters
+        const spiralRevolutions = 2 + Math.sin(flowTime * 0.3) * 0.5;
+        const spiralAngle = t * Math.PI * 2 * spiralRevolutions;
+        
+        // Use offset to create parallel spirals
+        const spiralOffset = (offset / 15) * Math.PI * 2;
+        
+        // Create wave-like distortions along the spiral
+        const wavePhase = flowTime * 0.5;
+        const radiusWave = Math.sin(t * Math.PI * 6 + wavePhase + offset * 0.2) * 0.2;
+        const heightWave = Math.cos(t * Math.PI * 8 + wavePhase) * 0.15;
+        
+        // Calculate spiral position with waves
+        const spiralR = spiralBaseRadius * (0.3 + 0.7 * t) * (1 + radiusWave);
+        const spiralX = spiralR * Math.cos(spiralAngle + spiralOffset);
+        const spiralY = spiralR * Math.sin(spiralAngle + spiralOffset);
+        const spiralZ = (-spiralDepth * 0.5) + spiralDepth * t * (1 + heightWave);
+        
+        return rotate3D(spiralX, spiralY, spiralZ);
+      
       default:
         return { x: centerX, y: centerY };
     }
@@ -226,12 +330,12 @@ export default function AnimationTest() {
     const boxLeft = centerX - boxWidth / 2;
     const boxTop = centerY - boxHeight / 2;
     
-    // Parameters for curves
-    const curves = ['helix', 'torus', 'mobius', 'wave3d', 'cylinder'] as const;
+    // Parameters for curves - using the new flowing patterns
+    const curves = ['flux', 'vortex', 'spiral3d'] as const;
     const colors = [
       'rgba(103, 232, 249, 0.9)', // Cyan
-      'rgba(255, 120, 203, 0.9)', // Pink
-      'rgba(252, 211, 77, 0.9)',  // Yellow
+      'rgba(255, 215, 77, 0.9)',  // Gold (like in the reference)
+      'rgba(230, 230, 230, 0.9)', // Silver (like in the reference)
       'rgba(139, 92, 246, 0.9)',  // Purple
       'rgba(96, 165, 250, 0.9)'   // Blue
     ];
@@ -239,11 +343,11 @@ export default function AnimationTest() {
     // Animation time value
     const time = Math.random() * Math.PI; // Random starting phase
     
-    // Create multiple 3D curves with parallel lines
+    // Create multiple 3D curves with parallel lines (increased density)
     curves.forEach((curveType, curveIndex) => {
-      const particleCount = 40; // More particles for 3D effect
+      const particleCount = 60; // More particles for dense effect like reference images
       const color = colors[curveIndex % colors.length];
-      const parallels = 12; // Number of parallel lines
+      const parallels = 20; // Increased parallel lines for more complex patterns
       
       // For each parallel line
       for (let p = 0; p < parallels; p++) {
@@ -275,8 +379,8 @@ export default function AnimationTest() {
             y: initialY,
             targetX: point.x,
             targetY: point.y,
-            size: 1.5 + Math.random() * 2,
-            delay: 0.01 * particles.length + (curveIndex * 0.15) + (p * 0.02),
+            size: 1.0 + Math.random() * 1.5, // Smaller particles for more refined look
+            delay: 0.005 * particles.length + (curveIndex * 0.1) + (p * 0.01), // Faster formation
             color: color
           });
         }
@@ -460,7 +564,14 @@ export default function AnimationTest() {
         {/* Splash screen */}
         <AnimatePresence>
           {isLoading && (
-            <div className="absolute inset-0 bg-gray-900">
+            <div className="absolute inset-0 bg-black">
+              {/* Radial gradient background for depth */}
+              <div 
+                className="absolute inset-0 opacity-40"
+                style={{
+                  background: 'radial-gradient(circle at center, rgba(15, 23, 42, 0.3) 0%, rgba(0, 0, 0, 1) 70%)',
+                }}
+              />
               {/* Curve Particles */}
               {particles.map((particle) => (
                 <Particle
