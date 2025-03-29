@@ -71,38 +71,133 @@ export default function AnimationTest() {
     centerY: number, 
     width: number, 
     height: number, 
-    curve: 'sine' | 'circle' | 'spiral' | 'lissajous' | 'heart'
+    curve: 'sine' | 'circle' | 'spiral' | 'lissajous' | 'heart' | 'helix' | 'torus' | 'mobius' | 'wave3d' | 'cylinder',
+    offset: number = 0, // For 3D effect with parallel curves
+    time: number = 0    // For rotation animation
   ) => {
+    // Time-based rotation factors
+    const rotationX = Math.cos(time) * Math.PI;
+    const rotationY = Math.sin(time) * Math.PI / 2;
+    const rotationZ = time;
+    
+    // Helper function to apply 3D rotation to a point
+    const rotate3D = (pointX: number, pointY: number, pointZ: number) => {
+      // Rotate around X axis
+      let y1 = pointY * Math.cos(rotationX) - pointZ * Math.sin(rotationX);
+      let z1 = pointY * Math.sin(rotationX) + pointZ * Math.cos(rotationX);
+      pointY = y1;
+      pointZ = z1;
+      
+      // Rotate around Y axis
+      let x1 = pointX * Math.cos(rotationY) + pointZ * Math.sin(rotationY);
+      z1 = -pointX * Math.sin(rotationY) + pointZ * Math.cos(rotationY);
+      pointX = x1;
+      pointZ = z1;
+      
+      // Rotate around Z axis
+      x1 = pointX * Math.cos(rotationZ) - pointY * Math.sin(rotationZ);
+      y1 = pointX * Math.sin(rotationZ) + pointY * Math.cos(rotationZ);
+      pointX = x1;
+      pointY = y1;
+      
+      // Calculate scale based on z value (perspective)
+      const scale = 400 / (400 + pointZ);
+      
+      return {
+        x: centerX + pointX * scale,
+        y: centerY + pointY * scale
+      };
+    };
+    
     switch(curve) {
       case 'sine':
         return {
-          x: centerX + (width/2) * Math.sin(t * Math.PI * 2),
-          y: centerY + (height/2) * Math.sin(t * Math.PI * 2 * 2)
+          x: centerX + (width/2) * Math.sin(t * Math.PI * 2 + time),
+          y: centerY + (height/2) * Math.sin(t * Math.PI * 2 * 2 + time)
         };
+        
       case 'circle':
         return {
-          x: centerX + (width/2) * Math.cos(t * Math.PI * 2),
-          y: centerY + (height/2) * Math.sin(t * Math.PI * 2)
+          x: centerX + (width/2) * Math.cos(t * Math.PI * 2 + time),
+          y: centerY + (height/2) * Math.sin(t * Math.PI * 2 + time)
         };
+        
       case 'spiral':
         const spiralRadius = t * Math.min(width, height) * 0.35;
         return {
-          x: centerX + spiralRadius * Math.cos(t * Math.PI * 10),
-          y: centerY + spiralRadius * Math.sin(t * Math.PI * 10)
+          x: centerX + spiralRadius * Math.cos(t * Math.PI * 10 + time),
+          y: centerY + spiralRadius * Math.sin(t * Math.PI * 10 + time)
         };
+        
       case 'lissajous':
         return {
-          x: centerX + (width/2) * Math.sin(t * Math.PI * 2 * 3),
-          y: centerY + (height/2) * Math.sin(t * Math.PI * 2 * 2)
+          x: centerX + (width/2) * Math.sin(t * Math.PI * 2 * 3 + time),
+          y: centerY + (height/2) * Math.sin(t * Math.PI * 2 * 2 + time * 1.5)
         };
+        
       case 'heart':
         // Heart curve
         const theta = t * Math.PI * 2;
         const scale = Math.min(width, height) * 0.25;
         return {
-          x: centerX + scale * 16 * Math.pow(Math.sin(theta), 3),
-          y: centerY - scale * (13 * Math.cos(theta) - 5 * Math.cos(2*theta) - 2 * Math.cos(3*theta) - Math.cos(4*theta))
+          x: centerX + scale * 16 * Math.pow(Math.sin(theta + time), 3),
+          y: centerY - scale * (13 * Math.cos(theta + time) - 5 * Math.cos(2*theta + time) - 2 * Math.cos(3*theta + time) - Math.cos(4*theta + time))
         };
+      
+      case 'helix':
+        // 3D helix with rotation
+        const helixRadius = Math.min(width, height) * 0.2;
+        const helixX = helixRadius * Math.cos(t * Math.PI * 8);
+        const helixY = helixRadius * Math.sin(t * Math.PI * 8);
+        const helixZ = (t - 0.5) * height * 0.7 + offset * 5;
+        return rotate3D(helixX, helixY, helixZ);
+      
+      case 'torus':
+        // 3D torus (donut shape)
+        const torusR1 = Math.min(width, height) * 0.3; // Major radius
+        const torusR2 = Math.min(width, height) * 0.1; // Minor radius
+        const torusU = t * Math.PI * 2;
+        const torusV = (offset / 20) * Math.PI * 2; // Use offset for the second angle
+        
+        const torusX = (torusR1 + torusR2 * Math.cos(torusV)) * Math.cos(torusU);
+        const torusY = (torusR1 + torusR2 * Math.cos(torusV)) * Math.sin(torusU);
+        const torusZ = torusR2 * Math.sin(torusV);
+        
+        return rotate3D(torusX, torusY, torusZ);
+      
+      case 'mobius':
+        // Möbius strip
+        const mobiusR = Math.min(width, height) * 0.25;
+        const mobiusV = (offset / 10) * 2 - 1; // Map offset to [-1, 1]
+        const mobiusU = t * Math.PI * 2;
+        
+        const mobiusX = mobiusR * Math.cos(mobiusU) * (1 + mobiusV * Math.cos(mobiusU/2) * 0.5);
+        const mobiusY = mobiusR * Math.sin(mobiusU) * (1 + mobiusV * Math.cos(mobiusU/2) * 0.5);
+        const mobiusZ = mobiusR * mobiusV * Math.sin(mobiusU/2);
+        
+        return rotate3D(mobiusX, mobiusY, mobiusZ);
+      
+      case 'wave3d':
+        // 3D wave surface
+        const waveSize = Math.min(width, height) * 0.3;
+        const waveX = (t * 2 - 1) * waveSize;
+        const waveY = (offset / 10 - 0.5) * waveSize;
+        const waveZ = Math.sin(waveX * 0.1 + time) * Math.cos(waveY * 0.1 + time) * waveSize * 0.3;
+        
+        return rotate3D(waveX, waveY, waveZ);
+      
+      case 'cylinder':
+        // Rotating cylinder
+        const cylinderR = Math.min(width, height) * 0.25;
+        const cylinderAngle = t * Math.PI * 2;
+        const cylinderHeight = (offset / 10 - 0.5) * height * 0.7;
+        
+        const cylinderX = cylinderR * Math.cos(cylinderAngle);
+        const cylinderY = cylinderR * Math.sin(cylinderAngle);
+        const cylinderZ = cylinderHeight;
+        
+        return rotate3D(cylinderX, cylinderY, cylinderZ);
+        
       default:
         return { x: centerX, y: centerY };
     }
@@ -110,7 +205,18 @@ export default function AnimationTest() {
 
   // Generate particles along curves
   const generateParticles = (width: number, height: number) => {
-    const particles = [];
+    const particles: Array<{
+      id: string | number;
+      x: number;
+      y: number;
+      targetX: number;
+      targetY: number;
+      size: number;
+      delay: number;
+      color: string;
+      isBoxParticle?: boolean;
+    }> = [];
+    
     const centerX = width / 2;
     const centerY = height / 2;
     
@@ -121,7 +227,7 @@ export default function AnimationTest() {
     const boxTop = centerY - boxHeight / 2;
     
     // Parameters for curves
-    const curves = ['sine', 'circle', 'spiral', 'lissajous', 'heart'] as const;
+    const curves = ['helix', 'torus', 'mobius', 'wave3d', 'cylinder'] as const;
     const colors = [
       'rgba(103, 232, 249, 0.9)', // Cyan
       'rgba(255, 120, 203, 0.9)', // Pink
@@ -130,31 +236,50 @@ export default function AnimationTest() {
       'rgba(96, 165, 250, 0.9)'   // Blue
     ];
     
-    // Create multiple curves
+    // Animation time value
+    const time = Math.random() * Math.PI; // Random starting phase
+    
+    // Create multiple 3D curves with parallel lines
     curves.forEach((curveType, curveIndex) => {
-      const particleCount = curveType === 'spiral' ? 50 : 30;
+      const particleCount = 40; // More particles for 3D effect
       const color = colors[curveIndex % colors.length];
+      const parallels = 12; // Number of parallel lines
       
-      for (let i = 0; i < particleCount; i++) {
-        const t = i / particleCount;
-        const point = getCurvePoint(t, centerX, centerY, width * 0.8, height * 0.6, curveType);
-        
-        // Add some randomness to initial positions
-        const randomAngle = Math.random() * Math.PI * 2;
-        const randomDistance = Math.random() * Math.max(width, height) * 0.5;
-        const initialX = centerX + Math.cos(randomAngle) * randomDistance;
-        const initialY = centerY + Math.sin(randomAngle) * randomDistance;
-        
-        particles.push({
-          id: particles.length,
-          x: initialX,
-          y: initialY,
-          targetX: point.x,
-          targetY: point.y,
-          size: 2 + Math.random() * 3,
-          delay: 0.01 * particles.length + (curveIndex * 0.2),
-          color: color
-        });
+      // For each parallel line
+      for (let p = 0; p < parallels; p++) {
+        // For each point on the curve
+        for (let i = 0; i < particleCount; i++) {
+          const t = i / particleCount;
+          
+          // Create the point with offset and time for rotation
+          const point = getCurvePoint(
+            t, 
+            centerX, 
+            centerY, 
+            width * 0.8, 
+            height * 0.6, 
+            curveType,
+            p,    // Offset for parallel curves
+            time  // Time value for rotation
+          );
+          
+          // Add some randomness to initial positions
+          const randomAngle = Math.random() * Math.PI * 2;
+          const randomDistance = Math.random() * Math.max(width, height) * 0.5;
+          const initialX = centerX + Math.cos(randomAngle) * randomDistance;
+          const initialY = centerY + Math.sin(randomAngle) * randomDistance;
+          
+          particles.push({
+            id: `${curveType}-${p}-${i}`,
+            x: initialX,
+            y: initialY,
+            targetX: point.x,
+            targetY: point.y,
+            size: 1.5 + Math.random() * 2,
+            delay: 0.01 * particles.length + (curveIndex * 0.15) + (p * 0.02),
+            color: color
+          });
+        }
       }
     });
     
@@ -201,14 +326,17 @@ export default function AnimationTest() {
       
       // Get a random point from the existing curves as initial position
       const randomIndex = Math.floor(Math.random() * particles.length);
-      const randomPoint = randomIndex < particles.length 
-        ? { x: particles[randomIndex].targetX, y: particles[randomIndex].targetY } 
-        : { x: Math.random() * width, y: Math.random() * height };
+      const randomStartX = randomIndex < particles.length 
+        ? particles[randomIndex].targetX 
+        : Math.random() * width;
+      const randomStartY = randomIndex < particles.length 
+        ? particles[randomIndex].targetY 
+        : Math.random() * height;
       
       particles.push({
         id: 'box-' + i,
-        x: randomPoint.x,
-        y: randomPoint.y,
+        x: randomStartX,
+        y: randomStartY,
         targetX: point.x,
         targetY: point.y,
         size: 2 + Math.random() * 2,
@@ -221,8 +349,21 @@ export default function AnimationTest() {
     return particles;
   };
 
+  // Define particle type
+  type ParticleType = {
+    id: string | number;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    size: number;
+    delay: number;
+    color: string;
+    isBoxParticle?: boolean;
+  };
+  
   // Initialize particles
-  const [particles, setParticles] = useState<any[]>([]);
+  const [particles, setParticles] = useState<ParticleType[]>([]);
   
   useEffect(() => {
     if (containerRef.current) {
