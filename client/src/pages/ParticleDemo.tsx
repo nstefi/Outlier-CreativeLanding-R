@@ -73,7 +73,7 @@ type ParticleType = {
 };
 
 // Main component
-export default function AnimationTest() {
+export default function ParticleDemo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [, setLocation] = useLocation();
   const [particles, setParticles] = useState<ParticleType[]>([]);
