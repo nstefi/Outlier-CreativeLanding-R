@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import ParticleDemo from "@/pages/ParticleDemo";
+import ConferenceBackground from "@/pages/ConferenceBackground";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/animation-test" component={ParticleDemo} />
+      <Route path="/conference" component={ConferenceBackground} />
       <Route component={NotFound} />
     </Switch>
   );
