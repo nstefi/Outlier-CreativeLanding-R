@@ -102,6 +102,12 @@ export default function Header() {
             </nav>
 
             <div className="flex items-center space-x-4">
+              <Link 
+                href="/animation-test"
+                className="hidden md:block border border-primary text-primary hover:bg-primary/10 px-4 py-1.5 rounded-full font-medium transition-colors mr-2"
+              >
+                Animation Demo
+              </Link>
               <a
                 href="#contact"
                 className="hidden md:block bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full font-medium transition-all relative overflow-hidden group"

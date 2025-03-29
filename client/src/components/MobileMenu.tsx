@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { Link } from "wouter";
 
 type NavLink = {
   label: string;
@@ -56,7 +57,14 @@ export default function MobileMenu({ isOpen, onClose, navLinks }: MobileMenuProp
               </motion.a>
             ))}
           </nav>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-col space-y-3">
+            <Link 
+              href="/animation-test"
+              className="block text-center border border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-full font-medium transition-colors"
+              onClick={onClose}
+            >
+              Animation Demo
+            </Link>
             <a
               href="#contact"
               className="block text-center bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full font-medium transition-all relative overflow-hidden group"
