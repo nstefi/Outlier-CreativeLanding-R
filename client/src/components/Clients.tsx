@@ -43,7 +43,7 @@ export default function Clients() {
   };
 
   return (
-    <section className="py-12 bg-gray-100">
+    <section className="py-20 bg-gray-100">
       <div className="container mx-auto px-6">
         <motion.div
           className="text-center mb-8"

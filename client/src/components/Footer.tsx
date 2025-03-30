@@ -6,10 +6,11 @@ export default function Footer() {
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           <div>
-            <a href="#" className="text-2xl font-bold text-white flex items-center mb-6">
-              <span className="text-primary">Anim</span>
-              <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">ate</span>
-            </a>
+            <div className="mb-6">
+              <div className="text-2xl font-bold text-white">
+                <span className="text-white">Anim</span><span className="bg-gradient-to-r from-white via-purple-400 to-purple-600 bg-clip-text text-transparent">ate</span>
+              </div>
+            </div>
             <p className="mb-6">
               Create stunning web experiences with smooth animations, creative transitions, and
               interactive elements.
