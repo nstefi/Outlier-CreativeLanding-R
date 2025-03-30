@@ -4,13 +4,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import ParticleDemo from "@/pages/ParticleDemo";
+import SplashScreen from "@/pages/SplashScreen";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/welcome" component={SplashScreen} />
       <Route path="/" component={Home} />
-      <Route path="/animation-test" component={ParticleDemo} />
       <Route component={NotFound} />
     </Switch>
   );
