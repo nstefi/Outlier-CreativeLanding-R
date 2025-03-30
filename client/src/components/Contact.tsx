@@ -8,9 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useToast } from "@/hooks/use-toast";
 import { Mail, PhoneCall, MapPin } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 
 const contactSchema = z.object({
   name: z.string().min(2, { message: "Name is required" }),
@@ -22,8 +20,8 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function Contact() {
   const { ref, controls } = useScrollAnimation();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const {
     register,
@@ -42,18 +40,12 @@ export default function Contact() {
   const onSubmit = async (data: ContactFormValues) => {
     setIsSubmitting(true);
     try {
-      await apiRequest("POST", "/api/contact", data);
-      toast({
-        title: "Message sent!",
-        description: "Thank you for contacting us. We'll get back to you soon.",
-      });
+      // For demo purposes, simulate a successful submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSubmitStatus('success');
       reset();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "There was a problem sending your message. Please try again.",
-        variant: "destructive",
-      });
+      setSubmitStatus('error');
       console.error("Error submitting form:", error);
     } finally {
       setIsSubmitting(false);
@@ -204,9 +196,8 @@ export default function Contact() {
                   </Label>
                   <Textarea
                     id="message"
-                    rows={4}
-                    placeholder="How can we help you?"
-                    className={`w-full resize-none ${
+                    placeholder="Your message..."
+                    className={`w-full min-h-[120px] ${
                       errors.message ? "border-red-500 focus:ring-red-500" : ""
                     }`}
                     {...register("message")}
@@ -218,14 +209,23 @@ export default function Contact() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-all relative overflow-hidden group"
+                  className="w-full bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
-                  <span className="relative z-10">
-                    {isSubmitting ? "Sending..." : "Send Message"}
-                  </span>
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/10 via-white/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
+
+                {submitStatus === 'success' && (
+                  <p className="mt-4 text-sm text-green-600">
+                    Thank you for your message! We'll get back to you soon.
+                  </p>
+                )}
+
+                {submitStatus === 'error' && (
+                  <p className="mt-4 text-sm text-red-600">
+                    There was a problem sending your message. Please try again.
+                  </p>
+                )}
               </form>
             </motion.div>
           </div>
