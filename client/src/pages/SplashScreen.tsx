@@ -182,6 +182,96 @@ export default function SplashScreen() {
 
   // Handle explore button click
   const handleExplore = () => {
+    // Create explosion particles
+    const createExplosionEffect = () => {
+      const explosionContainer = document.createElement('div');
+      explosionContainer.className = 'particle-explosion';
+      document.body.appendChild(explosionContainer);
+      
+      // Create particles that move outward from center
+      for (let i = 0; i < 150; i++) {
+        const particle = document.createElement('div');
+        const size = 2 + Math.random() * 8;
+        
+        // Position particles more centered around text for a focused explosion
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const variance = Math.min(window.innerWidth, window.innerHeight) * 0.2;
+        
+        const x = centerX + (Math.random() - 0.5) * variance;
+        const y = centerY + (Math.random() - 0.5) * variance;
+        
+        // Calculate angle from center
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const angle = Math.atan2(dy, dx);
+        
+        // Distance to travel in explosion
+        const distance = 100 + Math.random() * 300;
+        const duration = 700 + Math.random() * 700;
+        
+        // Different colors for variety
+        const hue = 180 + Math.random() * 40; // blue to cyan range
+        const brightness = 70 + Math.random() * 30;
+        
+        particle.style.position = 'absolute';
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.borderRadius = '50%';
+        particle.style.backgroundColor = `hsl(${hue}, 100%, ${brightness}%)`;
+        particle.style.boxShadow = `0 0 ${size * 2}px ${size}px hsla(${hue}, 100%, ${brightness}%, 0.8)`;
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.opacity = '1';
+        particle.style.zIndex = '1002';
+        
+        // Different timing functions for variety
+        const timings = [
+          'cubic-bezier(0.22, 1, 0.36, 1)',
+          'cubic-bezier(0, 0.9, 0.1, 1)',
+          'cubic-bezier(0.1, 0.8, 0.2, 1)'
+        ];
+        const timing = timings[Math.floor(Math.random() * timings.length)];
+        
+        // Set animation
+        particle.style.animation = `explode ${duration}ms ${timing} forwards`;
+        particle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0.1)`;
+        
+        explosionContainer.appendChild(particle);
+      }
+      
+      // Create additional sparkle effects
+      for (let i = 0; i < 30; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const radius = Math.min(window.innerWidth, window.innerHeight) * 0.4;
+        const angle = Math.random() * Math.PI * 2;
+        
+        const x = centerX + Math.cos(angle) * radius * Math.random();
+        const y = centerY + Math.sin(angle) * radius * Math.random();
+        
+        sparkle.style.left = `${x}px`;
+        sparkle.style.top = `${y}px`;
+        sparkle.style.animationDuration = `${300 + Math.random() * 700}ms`;
+        sparkle.style.animationDelay = `${Math.random() * 500}ms`;
+        
+        explosionContainer.appendChild(sparkle);
+      }
+      
+      // Remove particles after animation
+      setTimeout(() => {
+        if (explosionContainer && explosionContainer.parentNode) {
+          explosionContainer.parentNode.removeChild(explosionContainer);
+        }
+      }, 2000);
+    };
+    
+    // Trigger the effect and exit animation
+    createExplosionEffect();
+    
     if (splashScreenRef.current) {
       splashScreenRef.current.classList.add('exit');
     }
