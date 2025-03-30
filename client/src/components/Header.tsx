@@ -103,12 +103,6 @@ export default function Header() {
 
             <div className="flex items-center space-x-4">
               <Link 
-                href="/conference"
-                className="hidden md:block border border-purple-500 text-purple-500 hover:bg-purple-500/10 px-4 py-1.5 rounded-full font-medium transition-colors mr-2"
-              >
-                Conference BG
-              </Link>
-              <Link 
                 href="/animation-test"
                 className="hidden md:block border border-primary text-primary hover:bg-primary/10 px-4 py-1.5 rounded-full font-medium transition-colors mr-2"
               >

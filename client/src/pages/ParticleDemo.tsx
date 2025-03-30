@@ -3,331 +3,285 @@ import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
-// Particle component
-const Particle = ({ 
-  x, y, targetX, targetY, size, delay, isForming, color
+// Single dot component
+const Dot = ({ 
+  x, 
+  y, 
+  size, 
+  color, 
+  opacity = 1 
 }: { 
   x: number; 
   y: number; 
-  targetX: number; 
-  targetY: number; 
   size: number; 
-  delay: number; 
-  isForming: boolean;
-  color: string;
+  color: string; 
+  opacity?: number; 
 }) => {
-  // For motion
-  const spring = {
-    type: "spring",
-    damping: 20,
-    stiffness: 40,
-    mass: 0.8
-  };
-
   return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
+    <div 
+      className="absolute rounded-full" 
       style={{
-        left: 0,
-        top: 0,
         width: size,
         height: size,
         backgroundColor: color,
-        boxShadow: `0 0 ${size * 2}px ${color}`,
-        zIndex: 50,
-        // Center the dot on its coordinates
-        translateX: -size / 2,
-        translateY: -size / 2,
-      }}
-      initial={{ 
-        x, 
-        y,
-        opacity: 0
-      }}
-      animate={{ 
-        x: isForming ? targetX : x + (Math.random() - 0.5) * 400,
-        y: isForming ? targetY : y + (Math.random() - 0.5) * 400,
-        opacity: 1,
-        scale: isForming ? 1 : 0
-      }}
-      transition={{
-        x: { ...spring, delay },
-        y: { ...spring, delay },
-        opacity: { duration: 0.5, delay },
-        scale: { duration: 0.8, delay: isForming ? delay : delay + 0.2 }
+        opacity: opacity,
+        transform: `translate(${x - size / 2}px, ${y - size / 2}px)`,
+        boxShadow: `0 0 ${size / 2}px ${color}80`
       }}
     />
   );
 };
 
-// Define particle type
-type ParticleType = {
-  id: string | number;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  size: number;
-  delay: number;
-  color: string;
-};
-
-// Main component
-export default function ParticleDemo() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [, setLocation] = useLocation();
-  const [particles, setParticles] = useState<ParticleType[]>([]);
-  // Animation settings
-  const [isForming, setIsForming] = useState(true); // true = form fixed shapes, false = keep flowing
-  
-  // Animation frame reference
+// Generate a single wavy line of dots
+const WavyLine = ({
+  startX,
+  startY,
+  width,
+  dotCount = 50,
+  dotSize = 3,
+  color = '#3cefff',
+  amplitude = 50,
+  frequency = 0.02,
+  speed = 1,
+  phase = 0
+}: {
+  startX: number;
+  startY: number;
+  width: number;
+  dotCount?: number;
+  dotSize?: number;
+  color?: string;
+  amplitude?: number;
+  frequency?: number;
+  speed?: number;
+  phase?: number;
+}) => {
+  const [time, setTime] = useState(0);
   const animationRef = useRef<number>();
-  
-  // Helper function to generate a point on a parametric curve
-  const getCurvePoint = (
-    t: number, 
-    centerX: number, 
-    centerY: number, 
-    width: number, 
-    height: number, 
-    curve: 'flux' | 'vortex' | 'spiral3d',
-    offset: number = 0, // For parallel curves
-    time: number = 0    // For rotation animation
-  ) => {
-    // Time-based rotation factors
-    const rotationX = Math.cos(time) * Math.PI;
-    const rotationY = Math.sin(time) * Math.PI / 2;
-    const rotationZ = time;
-    
-    // Continuous time-based rotation (for flowing animation)
-    const flowTime = Date.now() / 1000;
-    
-    // Helper function to apply 3D rotation to a point
-    const rotate3D = (pointX: number, pointY: number, pointZ: number) => {
-      // Rotate around X axis
-      let y1 = pointY * Math.cos(rotationX) - pointZ * Math.sin(rotationX);
-      let z1 = pointY * Math.sin(rotationX) + pointZ * Math.cos(rotationX);
-      pointY = y1;
-      pointZ = z1;
-      
-      // Rotate around Y axis
-      let x1 = pointX * Math.cos(rotationY) + pointZ * Math.sin(rotationY);
-      z1 = -pointX * Math.sin(rotationY) + pointZ * Math.cos(rotationY);
-      pointX = x1;
-      pointZ = z1;
-      
-      // Rotate around Z axis
-      x1 = pointX * Math.cos(rotationZ) - pointY * Math.sin(rotationZ);
-      y1 = pointX * Math.sin(rotationZ) + pointY * Math.cos(rotationZ);
-      pointX = x1;
-      pointY = y1;
-      
-      // Calculate scale based on z value (perspective)
-      const scale = 400 / (400 + pointZ);
-      
-      return {
-        x: centerX + pointX * scale,
-        y: centerY + pointY * scale
-      };
-    };
-    
-    switch(curve) {
-      case 'flux':
-        // Flowing tube-like structure inspired by the reference images
-        const fluxR = Math.min(width, height) * 0.3;
-        const tubeLayers = 15; // Number of concentric layers
-        
-        // Use offset to create different layers
-        const layerIndex = offset % tubeLayers;
-        const layerRadius = fluxR * (0.2 + 0.8 * (layerIndex / tubeLayers));
-        
-        // Create twisting flow with sine waves
-        const fluxPhase = flowTime * 0.5; // Continuous rotation
-        const twirlFactor = 3 + Math.sin(flowTime * 0.2) * 2; // Varying twist
-        const waveAmplitude = 0.15 + 0.1 * Math.sin(flowTime * 0.3);
-        
-        // Base rotation around circle
-        const baseAngle = t * Math.PI * 2 * twirlFactor + fluxPhase;
-        
-        // Add wave distortion for each layer
-        const waveOffset = Math.sin(baseAngle * 2 + layerIndex) * waveAmplitude;
-        const radiusWithWave = layerRadius * (1 + waveOffset);
-        
-        // Flow direction varies with time
-        const flowZ = Math.cos(t * Math.PI * 4 + fluxPhase + layerIndex * 0.2) * height * 0.4;
-        
-        // Calculate final position
-        const fluxX = radiusWithWave * Math.cos(baseAngle);
-        const fluxY = radiusWithWave * Math.sin(baseAngle);
-        const fluxZ = flowZ;
-        
-        return rotate3D(fluxX, fluxY, fluxZ);
-        
-      case 'vortex':
-        // Vortex/tunnel effect (like the second image)
-        const vortexWidth = Math.min(width, height) * 0.35;
-        const vortexDepth = height * 0.6;
-        
-        // Use t for position along the vortex
-        // Use offset for angular position around the vortex
-        const vortexAngle = (offset / 20) * Math.PI * 2;
-        
-        // Create spiral motion
-        const spiralFactor = 1.5 + Math.sin(flowTime * 0.2) * 0.5; // Varying spiral tightness
-        const spiralTwist = t * spiralFactor * Math.PI * 2;
-        
-        // Radius decreases as we go deeper into the vortex for tunnel effect
-        const vortexRadius = vortexWidth * (0.2 + 0.8 * (1 - t));
-        
-        // Calculate position with some wobble
-        const wobble = Math.sin(t * Math.PI * 8 + flowTime) * 0.1;
-        const vortexX = vortexRadius * (1 + wobble) * Math.cos(vortexAngle + spiralTwist);
-        const vortexY = vortexRadius * (1 + wobble) * Math.sin(vortexAngle + spiralTwist);
-        const vortexZ = -vortexDepth * t; // Negative to go into the screen
-        
-        return rotate3D(vortexX, vortexY, vortexZ);
-      
-      case 'spiral3d':
-        // 3D spiral with wave effects (like the third image)
-        const spiralBaseRadius = Math.min(width, height) * 0.3;
-        const spiralDepth = height * 0.8;
-        
-        // Spiral parameters
-        const spiralRevolutions = 2 + Math.sin(flowTime * 0.3) * 0.5;
-        const spiralAngle = t * Math.PI * 2 * spiralRevolutions;
-        
-        // Use offset to create parallel spirals
-        const spiralOffset = (offset / 15) * Math.PI * 2;
-        
-        // Create wave-like distortions along the spiral
-        const wavePhase = flowTime * 0.5;
-        const radiusWave = Math.sin(t * Math.PI * 6 + wavePhase + offset * 0.2) * 0.2;
-        const heightWave = Math.cos(t * Math.PI * 8 + wavePhase) * 0.15;
-        
-        // Calculate spiral position with waves
-        const spiralR = spiralBaseRadius * (0.3 + 0.7 * t) * (1 + radiusWave);
-        const spiralX = spiralR * Math.cos(spiralAngle + spiralOffset);
-        const spiralY = spiralR * Math.sin(spiralAngle + spiralOffset);
-        const spiralZ = (-spiralDepth * 0.5) + spiralDepth * t * (1 + heightWave);
-        
-        return rotate3D(spiralX, spiralY, spiralZ);
-      
-      default:
-        return { x: centerX, y: centerY };
-    }
-  };
 
-  // Generate particles along curves
-  const generateParticles = (width: number, height: number) => {
-    const particles: ParticleType[] = [];
-    
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    // Parameters for curves - using the new flowing patterns
-    const curves = ['flux', 'vortex', 'spiral3d'] as const;
-    const colors = [
-      'rgba(103, 232, 249, 0.9)', // Cyan
-      'rgba(255, 215, 77, 0.9)',  // Gold (like in the reference)
-      'rgba(230, 230, 230, 0.9)', // Silver (like in the reference)
-      'rgba(139, 92, 246, 0.9)',  // Purple
-      'rgba(96, 165, 250, 0.9)'   // Blue
-    ];
-    
-    // Animation time value
-    const time = Math.random() * Math.PI; // Random starting phase
-    
-    // Create multiple 3D curves with parallel lines
-    curves.forEach((curveType, curveIndex) => {
-      const particleCount = 60; // More particles for dense effect
-      const color = colors[curveIndex % colors.length];
-      const parallels = 20; // More parallel lines for complex patterns
-      
-      // For each parallel line
-      for (let p = 0; p < parallels; p++) {
-        // For each point on the curve
-        for (let i = 0; i < particleCount; i++) {
-          const t = i / particleCount;
-          
-          // Create the point with offset and time for rotation
-          const point = getCurvePoint(
-            t, 
-            centerX, 
-            centerY, 
-            width * 0.8, 
-            height * 0.6, 
-            curveType,
-            p,    // Offset for parallel curves
-            time  // Time value for rotation
-          );
-          
-          // Add some randomness to initial positions
-          const randomAngle = Math.random() * Math.PI * 2;
-          const randomDistance = Math.random() * Math.max(width, height) * 0.5;
-          const initialX = centerX + Math.cos(randomAngle) * randomDistance;
-          const initialY = centerY + Math.sin(randomAngle) * randomDistance;
-          
-          particles.push({
-            id: `${curveType}-${p}-${i}`,
-            x: initialX,
-            y: initialY,
-            targetX: point.x,
-            targetY: point.y,
-            size: 1.0 + Math.random() * 1.5, // Smaller particles for more refined look
-            delay: 0.005 * particles.length + (curveIndex * 0.1) + (p * 0.01), // Faster formation
-            color: color
-          });
-        }
-      }
-    });
-    
-    return particles;
-  };
-  
+  // Update animation time
   useEffect(() => {
-    if (containerRef.current) {
-      const { clientWidth, clientHeight } = containerRef.current;
-      // Generate initial particles
-      setParticles(generateParticles(clientWidth, clientHeight));
-      
-      // Start continuous animation
-      let startTime = Date.now();
-      
-      // Function to update particle positions based on animation time
-      const updateParticles = () => {
-        const currentTime = Date.now();
-        const elapsed = (currentTime - startTime) / 1000;
-        
-        if (containerRef.current) {
-          const { clientWidth, clientHeight } = containerRef.current;
-          
-          // Update particles every 5 seconds for fluid motion
-          if (elapsed > 5) {
-            startTime = currentTime;
-            setParticles(generateParticles(clientWidth, clientHeight));
-          }
-        }
-        
-        // Continue animation loop
-        animationRef.current = requestAnimationFrame(updateParticles);
-      };
-      
-      // Start animation loop
-      animationRef.current = requestAnimationFrame(updateParticles);
-    }
-    
-    // Cleanup animation on unmount
+    const animate = () => {
+      setTime(prev => prev + 0.01 * speed);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
+  }, [speed]);
+
+  // Calculate positions of dots
+  const dots = [];
+  const spacing = width / (dotCount - 1);
+
+  for (let i = 0; i < dotCount; i++) {
+    const x = startX + i * spacing;
+    
+    // Different wave equations for more variation and natural feel
+    const waveFactor = Math.sin(frequency * x + time + phase);
+    
+    // Calculate y position with sine wave
+    const y = startY + amplitude * waveFactor;
+    
+    // Vary dot size and opacity for more natural feel
+    const dotOpacity = 0.4 + 0.6 * Math.abs(waveFactor);
+    
+    // Slightly vary dot size with position in wave
+    const sizeFactor = 0.8 + 0.4 * Math.abs(waveFactor);
+    
+    dots.push(
+      <Dot 
+        key={`line-${startX}-${startY}-${i}`}
+        x={x} 
+        y={y} 
+        size={dotSize * sizeFactor} 
+        color={color} 
+        opacity={dotOpacity}
+      />
+    );
+  }
+
+  return <>{dots}</>;
+};
+
+// Group of multiple wavy lines
+const WavyLineGroup = ({
+  width,
+  height,
+  lineCount = 6,
+  colorScheme = 'teal'
+}: {
+  width: number;
+  height: number;
+  lineCount?: number;
+  colorScheme?: 'teal' | 'green' | 'blue' | 'purple';
+}) => {
+  // Color schemes
+  const colorSchemes = {
+    teal: ['#01feff', '#3cefff', '#93fcff', '#a3fffd'],
+    green: ['#00ff87', '#38ef7d', '#70f570', '#42f595'],
+    blue: ['#0061ff', '#60a5fa', '#93c5fd', '#4f8df5'],
+    purple: ['#bf00ff', '#a855f7', '#c084fc', '#d8b4fe']
+  };
+
+  const colors = colorSchemes[colorScheme];
+  const lines = [];
+
+  for (let i = 0; i < lineCount; i++) {
+    // Space lines evenly across height
+    const yPos = (height / (lineCount + 1)) * (i + 1);
+    
+    // Alternate phases and frequencies for varied movement
+    const phase = i * Math.PI / (lineCount / 2);
+    const frequency = 0.01 + (i % 3) * 0.005;
+    const amplitude = 30 + (i % 4) * 15;
+    const speed = 0.8 + (i % 5) * 0.2;
+    
+    // Alternate direction for some lines
+    const startX = i % 2 === 0 ? 0 : width;
+    const lineWidth = width;
+    
+    // Use different colors from our scheme
+    const color = colors[i % colors.length];
+    
+    // Vary dot count slightly for each line
+    const dotCount = 50 + (i % 3) * 10;
+    
+    // Vary dot size
+    const dotSize = 2 + (i % 3);
+    
+    lines.push(
+      <WavyLine 
+        key={`wavyline-${i}`}
+        startX={startX} 
+        startY={yPos} 
+        width={lineWidth} 
+        dotCount={dotCount}
+        dotSize={dotSize}
+        color={color}
+        amplitude={amplitude}
+        frequency={frequency}
+        speed={speed}
+        phase={phase}
+      />
+    );
+  }
+
+  return <>{lines}</>;
+};
+
+// Curved wavy line that creates more complex paths
+const CurvedWavyLine = ({
+  width,
+  height,
+  dotCount = 100,
+  dotSize = 2.5,
+  color = '#3cefff',
+  amplitude = 40,
+  frequency = 3,
+  speed = 1,
+  curvature = 1,
+  verticalShift = 0
+}: {
+  width: number;
+  height: number;
+  dotCount?: number;
+  dotSize?: number;
+  color?: string;
+  amplitude?: number;
+  frequency?: number;
+  speed?: number;
+  curvature?: number;
+  verticalShift?: number;
+}) => {
+  const [time, setTime] = useState(0);
+  const animationRef = useRef<number>();
+
+  // Update animation time
+  useEffect(() => {
+    const animate = () => {
+      setTime(prev => prev + 0.005 * speed);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [speed]);
+
+  // Calculate positions of dots in a curved path
+  const dots = [];
+  
+  for (let i = 0; i < dotCount; i++) {
+    const t = i / dotCount;
+    const angle = t * Math.PI * 2 * frequency + time;
+    
+    // Parametric equations for curved path
+    const x = width * (0.1 + 0.8 * t);
+    
+    // Calculate y position with sine wave and parabolic curve
+    const baseline = height * 0.5 + verticalShift;
+    const curveOffset = curvature * Math.sin(t * Math.PI);
+    const waveOffset = amplitude * Math.sin(angle);
+    
+    const y = baseline + curveOffset * height * 0.3 + waveOffset;
+    
+    // Vary dot opacity with position
+    const dotOpacity = 0.4 + 0.6 * Math.abs(Math.sin(angle));
+    
+    // Vary dot size with position
+    const sizeFactor = 0.7 + 0.3 * Math.abs(Math.sin(angle));
+    
+    dots.push(
+      <Dot 
+        key={`curved-${i}`}
+        x={x} 
+        y={y} 
+        size={dotSize * sizeFactor} 
+        color={color} 
+        opacity={dotOpacity}
+      />
+    );
+  }
+
+  return <>{dots}</>;
+};
+
+export default function ParticleDemo() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [, setLocation] = useLocation();
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  
+  // Update dimensions on resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight
+        });
+      }
+    };
+    
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+    };
   }, []);
   
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       {/* Header with back button */}
-      <header className="bg-gray-800 py-4 px-6">
+      <header className="bg-black py-4 px-6 z-10">
         <div className="container mx-auto">
           <button 
             onClick={() => setLocation('/')} 
@@ -339,33 +293,46 @@ export default function ParticleDemo() {
         </div>
       </header>
       
-      {/* Main content - just the animation, no message box */}
-      <div className="flex-1 relative overflow-hidden" ref={containerRef}>
-        {/* Black background with subtle gradient */}
-        <div className="absolute inset-0 bg-black">
-          {/* Radial gradient background for depth */}
-          <div 
-            className="absolute inset-0 opacity-40"
-            style={{
-              background: 'radial-gradient(circle at center, rgba(15, 23, 42, 0.3) 0%, rgba(0, 0, 0, 1) 70%)',
-            }}
-          />
-          
-          {/* Curve Particles */}
-          {particles.map((particle) => (
-            <Particle
-              key={particle.id}
-              x={particle.x}
-              y={particle.y}
-              targetX={particle.targetX}
-              targetY={particle.targetY}
-              size={particle.size}
-              delay={particle.delay}
-              isForming={isForming}
-              color={particle.color}
+      {/* Animation container */}
+      <div className="flex-1 relative overflow-hidden bg-black" ref={containerRef}>
+        {dimensions.width > 0 && dimensions.height > 0 && (
+          <>
+            {/* Regular wavy lines */}
+            <WavyLineGroup 
+              width={dimensions.width} 
+              height={dimensions.height} 
+              lineCount={8}
+              colorScheme="teal"
             />
-          ))}
-        </div>
+            
+            {/* Curved wavy paths */}
+            <CurvedWavyLine 
+              width={dimensions.width}
+              height={dimensions.height}
+              dotCount={100}
+              dotSize={3}
+              color="#01feff"
+              amplitude={50}
+              frequency={2}
+              speed={0.8}
+              curvature={0.5}
+              verticalShift={-100}
+            />
+            
+            <CurvedWavyLine 
+              width={dimensions.width}
+              height={dimensions.height}
+              dotCount={120}
+              dotSize={2.5}
+              color="#38ef7d"
+              amplitude={40}
+              frequency={3}
+              speed={1.2}
+              curvature={-0.7}
+              verticalShift={100}
+            />
+          </>
+        )}
       </div>
     </div>
   );
